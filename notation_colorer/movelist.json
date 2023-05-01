@@ -1,0 +1,79 @@
+{
+  "Universal": {
+    "Normals": [
+      "5P",
+      "5K",
+      "c.S",
+      "f.S",
+      "5H",
+      "5D",
+      "[5]D",
+      "2P",
+      "2K",
+      "2S",
+      "6P",
+      "j.P",
+      "j.K",
+      "j.S",
+      "j.H",
+      "j.D"
+    ],
+    "Mechanics": [
+      {
+        "Name": "Ground Throw",
+        "Input": ["4D", "6D"]
+      },
+      {
+        "Name": "Air Throw",
+        "Input": ["j.4D", "j.6D"]
+      }
+    ]
+  },
+  "SO": {
+    "Normals": ["6S", "6H"],
+    "Specials": [
+      {
+        "Name": "Gun Flame",
+        "Input": ["236P"]
+      },
+      {
+        "Name": "Gun Flame (Feint)",
+        "Input": ["214P"]
+      },
+      {
+        "Name": "Volcanic Viper",
+        "Input": ["623S", "623H", "j.623S", "j.623H"]
+      },
+      {
+        "Name": "Bandit Revolver",
+        "Input": ["236K", "236KK", "j.236K", "j.236KK"]
+      },
+      {
+        "Name": "Bandit Bringer",
+        "Input": ["214K", "j.214K"]
+      },
+      {
+        "Name": "Wild Throw",
+        "Input": ["623K"]
+      },
+      {
+        "Name": "Night Raid Vortex",
+        "Input": ["214S"]
+      },
+      {
+        "Name": "Fafnir",
+        "Input": ["41236H"]
+      }
+    ],
+    "Overdrives": [
+      {
+        "Name": "Tyrant Rave",
+        "Input": ["632146H"]
+      },
+      {
+        "Name": "Heavy Mob Cemetary",
+        "Input": ["214214H"]
+      }
+    ]
+  }
+}
