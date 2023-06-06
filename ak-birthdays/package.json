@@ -1,0 +1,18 @@
+{
+  "name": "ak-birthdays",
+  "version": "1.0.0",
+  "description": "Program to web-scrape Arknights operator birthdays and populate them in a table and/or calendar. Small practice project.",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "dev": "nodemon index.js"
+  },
+  "author": "Colin Cross",
+  "license": "ISC",
+  "dependencies": {
+    "puppeteer": "^20.5.0"
+  },
+  "devDependencies": {
+    "nodemon": "^2.0.22"
+  }
+}
