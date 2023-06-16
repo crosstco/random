@@ -1,70 +1,96 @@
 // Module imports
 const puppeteer = require('puppeteer');
+const fs = require('fs');
+const { convertArrayToCSV } = require('convert-array-to-csv');
+
+// Safe handling of puppeteer resources
+// Creates a browser object and attempts to execute the function defined by fn with the new browser object. Disposes the browser on pass or failure to prevent hanging resources.
+const useBrowser = async (fn) => {
+  const browser = await puppeteer.launch({ headless: 'new ' });
+  try {
+    return await fn(browser);
+  } finally {
+    await browser.close();
+  }
+};
+
+// Creates a page object given a browser and attempts to execute the function defined by fn with the new page object. Disposes the page on pass or failure to prevent hanging resources.
+const usePage = async (browser, fn) => {
+  const page = await browser.newPage();
+  try {
+    return await fn(page);
+  } finally {
+    await page.close();
+  }
+};
 
 // Defined globals
 const OP_LIST_URL =
   'https://gamepress.gg/arknights/tools/interactive-operator-list#tags=null##stats';
+const operators = [];
+let count = 0;
 
-// Create and invoke anonymous function
+// Execution start: create a browser and use this for everything else.
 (async () => {
-  const browser = await puppeteer.launch({ headless: 'new' });
-  const page = await browser.newPage();
+  await useBrowser(async (browser) => {
+    // Get basic operator data from the OP_LIST_URL (name, icon, and url to their page with more specific info)
+    await usePage(browser, async (page) => {
+      await page.goto(OP_LIST_URL);
 
-  await page.goto(OP_LIST_URL);
+      const operatorElements = await page.$$('.operator-cell');
 
-  const operatorElements = await page.$$('.operator-cell');
+      // DEBUG
+      count = 1;
 
-  const operators = [];
+      for (const element of operatorElements) {
+        // Build an operator object from data in each operator cell element
+        const operator = {};
 
-  // DEBUG
-  let count = 1;
+        // DEBUG
+        console.log(
+          'Fetching basic data for element %d of %d',
+          count,
+          operatorElements.length
+        );
 
-  for (const element of operatorElements) {
-    // Build an operator object from data in each operator cell element
-    const operator = {};
+        // Get operator name
+        operator.name = await element.$eval(
+          '.operator-title-actual',
+          (titleElement) => {
+            return titleElement.innerText;
+          }
+        );
 
-    // DEBUG
-    console.log(
-      'Fetching basic data for element %d of %d',
-      count,
-      operatorElements.length
-    );
+        // Get operator image file
+        operator.iconURL = await element.$eval('img[src]', (img) => {
+          return img.getAttribute('src');
+        });
 
-    // Get operator name
-    operator.name = await element.$eval(
-      '.operator-title-actual',
-      (titleElement) => {
-        return titleElement.innerText;
+        // Store profile URL which will be used for extra data later.
+        const operatorPagePath = await element.$eval('a', (link) => {
+          return link.getAttribute('href');
+        });
+
+        //Build URL to profile by taking the link and expanding it to the profile section
+        operator.profileURL =
+          'https://gamepress.gg' + operatorPagePath + '#profile';
+
+        // Append operator data to operators array
+        operators.push(operator);
+
+        // DEBUG
+        count++;
       }
-    );
-
-    // Get operator image file
-    operator.iconURL = await element.$eval('img[src]', (img) => {
-      return img.getAttribute('src');
     });
-
-    // Store profile URL which will be used for extra data later.
-    const operatorPagePath = await element.$eval('a', (link) => {
-      return link.getAttribute('href');
-    });
-
-    //Build URL to profile by taking the link and expanding it to the profile section
-    operator.profileURL =
-      'https://gamepress.gg' + operatorPagePath + '#profile';
-
-    // Append operator data to operators array
-    operators.push(operator);
 
     // DEBUG
-    count++;
-  }
+    count = 1;
 
-  // DEBUG
-  count = 1;
+    // Fetch the birthdays which involves navigating to each invidual operator page and scraping for the birthday part of the table.
+    for (const operator of operators) {
+      // DEBUG
+      // if (count >= 25) break;
 
-  // Fetch the birthdays which involves navigating to each individual operator page and scraping for the birthday part of the table
-  for (const operator of operators) {
-    try {
       // DEBUG
       console.log(
         'Fetching birthday info for %s [%d of %d]...',
@@ -73,33 +99,28 @@ const OP_LIST_URL =
         operators.length
       );
 
-      // Navigate to profile
-      await page.goto(operator.profileURL);
+      // Attempt to navigate to the operator page and get the birthday info from the profile table.
+      try {
+        operator.birthday = await usePage(browser, async (page) => {
+          await page.goto(operator.profileURL);
 
-      // Scrape for the teable header that contains "Birthday" and return the value of the data cell next to it, given by its next sibling.
-      operator.birthday = await page.$eval(
-        'th::-p-text("Birthday")',
-        (bdHeader) => bdHeader.nextElementSibling.innerText
-      );
-    } catch (err) {
-      console.error('Birthday for %s not obtained', operator.name);
-      console.error(err);
-      operator.birthday = null;
-    } finally {
-      // DEBUG
+          return await page.$eval(
+            'th::-p-text("Birthday")',
+            (th) => th.nextElementSibling.innerText
+          );
+        });
+      } catch (err) {
+        console.log('FAILED to obtain birthday info for %s', operator.name);
+      }
       count++;
     }
+  });
+
+  // Export operator data to CSV
+  const operatorsCSV = convertArrayToCSV(operators);
+  try {
+    fs.writeFileSync('operators.csv', operatorsCSV);
+  } catch (err) {
+    console.error(err);
   }
-
-  // TEST: Print out all operator fields
-  operators.map((operator) =>
-    console.log(
-      'Operator: %s, Birthday: %s, Icon Path: %s',
-      operator.name,
-      operator.birthday,
-      operator.iconURL
-    )
-  );
-
-  await browser.close();
 })();

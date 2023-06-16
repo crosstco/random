@@ -1,3 +1,5 @@
 node_modules/
 test.js
-*.png
+page.png
+profile.png
+operators.csv
