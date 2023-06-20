@@ -1,5 +1,6 @@
 // Module imports
 const puppeteer = require('puppeteer');
+const async = require('async');
 const fs = require('fs');
 const { convertArrayToCSV } = require('convert-array-to-csv');
 
@@ -26,7 +27,8 @@ const usePage = async (browser, fn) => {
 
 // Defined globals
 const OP_LIST_URL =
-  'https://gamepress.gg/arknights/tools/interactive-operator-list#tags=null##stats';
+  'https://gamepress.gg/arknights/tools/interactive-operator-list#tags=null##stats'; // Gamepress link to list of operators.
+const NUM_PARALLEL_PAGES = 5; // Number of pages to run concurrently
 const operators = [];
 let count = 0;
 
@@ -42,14 +44,14 @@ let count = 0;
       // DEBUG
       count = 1;
 
-      for (const element of operatorElements) {
-        // Build an operator object from data in each operator cell element
+      // Grab all operator data on the page in parallel. NOTE: All basic data is on this page so all requests can be done at once.
+      await async.each(operatorElements, async (element) => {
         const operator = {};
 
         // DEBUG
         console.log(
           'Fetching basic data for element %d of %d',
-          count,
+          count++,
           operatorElements.length
         );
 
@@ -77,17 +79,12 @@ let count = 0;
 
         // Append operator data to operators array
         operators.push(operator);
-
-        // DEBUG
-        count++;
-      }
+      });
     });
 
     // DEBUG
     count = 1;
-
-    // Fetch the birthdays which involves navigating to each invidual operator page and scraping for the birthday part of the table.
-    for (const operator of operators) {
+    await async.eachLimit(operators, NUM_PARALLEL_PAGES, async (operator) => {
       // DEBUG
       // if (count >= 25) break;
 
@@ -95,7 +92,7 @@ let count = 0;
       console.log(
         'Fetching birthday info for %s [%d of %d]...',
         operator.name,
-        count,
+        count++,
         operators.length
       );
 
@@ -111,9 +108,9 @@ let count = 0;
         });
       } catch (err) {
         console.log('FAILED to obtain birthday info for %s', operator.name);
+        operator.birthday = null;
       }
-      count++;
-    }
+    });
   });
 
   // Export operator data to CSV

@@ -10,6 +10,7 @@
   "author": "Colin Cross",
   "license": "ISC",
   "dependencies": {
+    "async": "^3.2.4",
     "puppeteer": "^20.5.0"
   },
   "devDependencies": {
